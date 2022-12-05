@@ -1,14 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-
-/**
- *
- * Event doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
- * @param {Object} event - API Gateway Lambda Proxy Input Format
- *
- * Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
- * @returns {Object} object - API Gateway Lambda Proxy Output Format
- *
- */
+import { Web3Storage, File } from 'web3.storage';
 
 interface GoodsOrRealEstate {
     name: string;
@@ -19,14 +10,18 @@ export const lambdaHandler = async (event: APIGatewayProxyEvent): Promise<APIGat
     let response: APIGatewayProxyResult;
     try {
         if (!event.body) throw Error();
-        const goodOrRealEstate: GoodsOrRealEstate = JSON.parse(event.body);
-        console.log(JSON.stringify(event));
+        const client = new Web3Storage({ token: String(process.env.WEB3_STORAGE_API_KEY) });
+        const goodsOrRealEstate: GoodsOrRealEstate = JSON.parse(event.body);
+
+        const buffer = Buffer.from(JSON.stringify(goodsOrRealEstate));
+
+        const files = [new File([buffer], 'data.json')];
+        const cid = await client.put(files);
 
         response = {
             statusCode: 200,
             body: JSON.stringify({
-                message: goodOrRealEstate.description,
-                env: process.env,
+                cid,
             }),
         };
     } catch (err: unknown) {
